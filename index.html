@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>제품 순위 트렌드 대시보드</title>
+  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+  <!-- Litepicker 스타일 및 스크립트 추가 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/litepicker/dist/css/litepicker.css" />
+  <script src="https://cdn.jsdelivr.net/npm/litepicker/dist/bundle.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      padding: 30px;
+      background-color: #f8f9fa;
+    }
+    h1 {
+      font-size: 24px;
+      color: #333;
+    }
+    .filters {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    select, button {
+      padding: 8px;
+      font-size: 14px;
+    }
+    #chart_div {
+      width: 100%;
+      height: 900px;
+      margin-top: 40px;
+    }
+
+    #fullscreen-loader {
+      display: none; /* 기본은 숨김 */
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(255, 255, 255, 0.8);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .spinner {
+      border: 6px solid #f3f3f3;
+      border-top: 6px solid #3498db;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+      margin-bottom: 15px;
+    }
+
+    .loading-text {
+      font-size: 16px;
+      color: #333;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .custom-btn {
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+      transition: background-color 0.2s ease;
+      color: white;
+    }
+
+    .custom-btn.blue {
+      background-color: #3b82f6;
+    }
+
+    .custom-btn.blue:hover {
+      background-color: #2563eb;
+    }
+
+    .custom-btn.green {
+      background-color: #10b981;
+    }
+
+    .custom-btn.green:hover {
+      background-color: #059669;
+    }
+
+    .custom-btn.olivedrab {
+      background-color: #6b8e23;
+    }
+
+    .custom-btn.olivedrab:hover {
+      background-color: #4c6619;
+    }
+
+    label {
+      font-weight: 500;
+      margin-bottom: 4px;
+      display: block;
+      color: #333;
+    }
+
+    .styled-input,
+    .styled-select {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .styled-select {
+      height: 120px;
+    }
+
+    .styled-input:focus,
+    .styled-select:focus {
+      border-color: #4f46e5;
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+    }
+  </style>
+</head>
+<body>
+  <div id="fullscreen-loader">
+    <div class="spinner"></div>
+    <div class="loading-text">데이터를 불러오는 중입니다...</div>
+  </div>
+  <h1>제품 순위 트렌드 대시보드</h1>
+
+  <div class="filters">
+    <!-- 첫 번째 줄: 필터 + 제품 불러오기 버튼 -->
+    <div style="grid-column: span 7; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, auto)); gap: 30px;">
+      <div>
+        <label for="dateRange">날짜 범위</label>
+        <input type="text" id="dateRange" placeholder="날짜 선택..."  class="styled-select" style="height: 20px;" />
+      </div>
+      <div>
+        <label for="channelFilter">플랫폼</label>
+        <select id="channelFilter" multiple class="styled-select"></select>
+      </div>
+      <div>
+        <label for="catBFilter">카테고리(대)</label>
+        <select id="catBFilter" multiple class="styled-select"></select>
+      </div>
+      <div>
+        <label for="catMFilter">카테고리(중)</label>
+        <select id="catMFilter" multiple class="styled-select"></select>
+      </div>
+      <div>
+        <label for="catSFilter">카테고리(소)</label>
+        <select id="catSFilter" multiple class="styled-select"></select>
+      </div>
+      <div>
+        <label for="brandFilter">브랜드</label>
+        <select id="brandFilter" multiple class="styled-select"></select>
+      </div>
+      <div>
+        <label>&nbsp;</label>
+        <button onclick="loadChartBrand()" class="custom-btn blue">차트 그리기(브랜드 점수)</button>
+
+      </div>
+    </div>
+
+    <!-- 두 번째 줄: 제품 선택 + 차트 그리기 버튼 -->
+    <div style="grid-column: span 6; display: flex; gap: 20px; margin-top: 25px;">
+      <div style="flex: 1;">
+        <label for="productFilter">제품</label>
+        <select id="productFilter" multiple size="4"  class="styled-select" style="width: 100%;"></select>
+      </div>
+      <div style="display: flex; align-items: flex-end;">
+        <button onclick="loadProductOptions()" class="custom-btn olivedrab">제품 불러오기</button>
+      </div>
+      <div style="display: flex; align-items: flex-end;">
+        <button onclick="loadChart()" class="custom-btn green">차트 그리기(제품 순위)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- <div id="chart_div">차트를 불러오는 중...</div> -->
+  <div id="multi_chart_container" style="padding-top: 30px">차트 영역</div>
+
+  <script>
+    let startDate = "";
+    let endDate = "";
+
+    const picker = new Litepicker({
+      element: document.getElementById("dateRange"),
+      singleMode: false,
+      format: "YYYY-MM-DD",
+      setup: (picker) => {
+        picker.on('selected', (start, end) => {
+          startDate = start.format("YYYY-MM-DD");
+          endDate = end.format("YYYY-MM-DD");
+          console.log("선택된 날짜 범위:", startDate, endDate);
+        });
+      }
+    });
+
+
+    const FILTER_API = "https://asia-northeast3-skin1004-319714.cloudfunctions.net/get_filter_options";
+    const DATA_API = "https://asia-northeast3-skin1004-319714.cloudfunctions.net/get_chart_data";
+    const DATA_BRAND_API = "https://asia-northeast3-skin1004-319714.cloudfunctions.net/get_brand_score_chart_data";
+    let fullFilterData = {};
+
+    function getSelectValues(id) {
+      return Array.from(document.getElementById(id).selectedOptions).map(opt => opt.value);
+    }
+
+    function populateSelect(id, options) {
+      const selectEl = document.getElementById(id);
+
+      // ✅ 기존 선택 값 저장
+      const selectedValues = Array.from(selectEl.selectedOptions).map(opt => opt.value);
+
+      // ❌ 기존 TomSelect 인스턴스 제거
+      if (selectEl.tomselect) {
+        selectEl.tomselect.destroy();
+      }
+
+      // 🔄 옵션 재구성
+      selectEl.innerHTML = "";
+      options.forEach(option => {
+        const opt = document.createElement("option");
+        opt.value = option;
+        opt.textContent = option;
+        selectEl.appendChild(opt);
+      });
+
+      // ✅ TomSelect 재생성 (❌ items 사용하지 않음)
+      const tom = new TomSelect(selectEl, {
+        plugins: ['remove_button'],
+        persist: false,
+        create: false,
+        maxOptions: null,
+        highlight: true, // 선택사항
+        hideSelected: false, // 선택사항
+        render: {
+        no_results: () => '<div class="no-results">선택 가능한 항목이 없습니다</div>'
+      }
+      });
+
+      // ✅ 선택값 복원
+      tom.setValue(selectedValues.filter(v => options.includes(v)));
+    }
+
+    let rawFilterData = [];
+
+    async function populateFilters() {
+      const res = await fetch(FILTER_API);
+      rawFilterData = await res.json();
+
+      updateDependentFilters(); // 초기 전체 필터 표시
+    }
+
+    async function loadChart() {
+      showLoader();
+
+      const channel = getSelectValues("channelFilter").join(",");
+      const catB = getSelectValues("catBFilter").join(",");
+      const catM = getSelectValues("catMFilter").join(",");
+      const catS = getSelectValues("catSFilter").join(",");
+      const brand = getSelectValues("brandFilter").join(",");
+      //const products = getSelectValues("productFilter").join(",");
+
+      if (brand.length === 0) {
+        alert("하나 이상의 브랜드를 선택하세요.");
+        hideLoader();
+        return;
+      }
+
+      const productOptions = document.getElementById("productFilter").selectedOptions;
+      const products = Array.from(productOptions).map(opt => opt.value).join(",");
+
+      try {
+        const url = `${DATA_API}?channel=${encodeURIComponent(channel)}&catB=${encodeURIComponent(catB)}&catM=${encodeURIComponent(catM)}&catS=${encodeURIComponent(catS)}&brand=${encodeURIComponent(brand)}&products=${encodeURIComponent(products)}&startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
+
+        const response = await fetch(url);
+        const data = await response.json();
+        //drawChart(data);
+        drawMultiChart(data);
+      } catch (error) {
+        alert("차트 데이터를 불러오는 데 실패했습니다.");
+        console.error(error);
+      } finally {
+        hideLoader();
+      }
+    }
+
+    async function loadChartBrand() {
+      showLoader();
+
+      const channel = getSelectValues("channelFilter").join(",");
+      const catB = getSelectValues("catBFilter").join(",");
+      const catM = getSelectValues("catMFilter").join(",");
+      const catS = getSelectValues("catSFilter").join(",");
+      const brand = getSelectValues("brandFilter").join(",");
+      //const products = getSelectValues("productFilter").join(",");
+
+      if (catS.length === 0) {
+        alert("하나 이상의 카테고리(소)를 선택하세요.");
+        hideLoader();
+        return;
+      }
+
+      const productOptions = document.getElementById("productFilter").selectedOptions;
+      const products = Array.from(productOptions).map(opt => opt.value).join(",");
+
+      try {
+        const url = `${DATA_BRAND_API}?channel=${encodeURIComponent(channel)}&catB=${encodeURIComponent(catB)}&catM=${encodeURIComponent(catM)}&catS=${encodeURIComponent(catS)}&brand=${encodeURIComponent(brand)}&startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
+
+        const response = await fetch(url);
+        const data = await response.json();
+        //drawChart(data);
+        drawMultiChartBrand(data);
+      } catch (error) {
+        alert("차트 데이터를 불러오는 데 실패했습니다.");
+        console.error(error);
+      } finally {
+        hideLoader();
+      }
+    }
+
+    function drawChart(data) {
+      if (data.length === 0) {
+        document.getElementById("chart_div").innerHTML = "데이터가 없습니다.";
+        return;
+      }
+
+      const chartData = new google.visualization.DataTable();
+      chartData.addColumn("string", "날짜");
+      const productNames = [...new Set(data.map(row => row.Product_Name))];
+      productNames.forEach(name => chartData.addColumn("number", name));
+
+      const dateMap = {};
+      data.forEach(row => {
+        if (!dateMap[row.date]) dateMap[row.date] = {};
+        dateMap[row.date][row.Product_Name] = row.Rank;
+      });
+
+      const rows = Object.keys(dateMap).sort().map(date => {
+        const row = [date];
+        productNames.forEach(name => {
+          row.push(dateMap[date][name] ?? null);
+        });
+        return row;
+      });
+      chartData.addRows(rows);
+
+      const options = {
+        title: "제품별 순위 추이",
+        curveType: "function",
+        legend: { position: "right", textStyle: { fontSize: 12 } },
+        height: 900,
+        chartArea: { left: 60, top: 60, width: "75%", height: "75%" },
+        vAxis: {
+          title: "순위",
+          direction: -1,
+          viewWindow: { min: 1 },
+          textStyle: { fontSize: 12 },
+          titleTextStyle: { fontSize: 14 },
+        },
+        hAxis: {
+          title: "날짜",
+          slantedText: true,
+          slantedTextAngle: 45,
+          textStyle: { fontSize: 12 },
+          titleTextStyle: { fontSize: 14 },
+        },
+      };
+
+      const chart = new google.visualization.LineChart(document.getElementById("chart_div"));
+      chart.draw(chartData, options);
+    }
+
+    function drawMultiChart(data) {
+      const container = document.getElementById("multi_chart_container");
+      container.innerHTML = ""; // 기존 차트 초기화
+
+      // 1. 플랫폼 + 카테고리(소) 기준으로 그룹화
+      const grouped = {};
+
+      data.forEach(row => {
+        const key = `${row.Channel} | ${row.Category_S}`;
+        if (!grouped[key]) grouped[key] = [];
+        grouped[key].push(row);
+      });
+
+      // 2. 그룹별로 차트 생성
+      Object.entries(grouped).forEach(([groupKey, groupData], index) => {
+        const chartDiv = document.createElement("div");
+        chartDiv.id = `chart_${index}`;
+        chartDiv.style.marginBottom = "50px";
+        chartDiv.style.height = "900px";
+        container.appendChild(chartDiv);
+
+        const chartData = new google.visualization.DataTable();
+        chartData.addColumn("string", "날짜");
+
+        const products = [...new Set(groupData.map(d => d.Product_Name))];
+        products.forEach(p => chartData.addColumn("number", p));
+
+        // 날짜별로 순위 구성
+        const dateMap = {};
+        groupData.forEach(row => {
+          if (!dateMap[row.date]) dateMap[row.date] = {};
+          dateMap[row.date][row.Product_Name] = row.Rank;
+        });
+
+        const rows = Object.keys(dateMap).sort().map(date => {
+          const row = [date];
+          products.forEach(p => {
+            row.push(dateMap[date][p] ?? null);
+          });
+          return row;
+        });
+        chartData.addRows(rows);
+
+        const options = {
+          title: groupKey,
+          curveType: "function",
+          legend: { position: "right", textStyle: { fontSize: 11 } },
+          height: 900,
+          chartArea: { left: 60, top: 60, width: "75%", height: "75%" },
+          vAxis: {
+            title: "순위",
+            direction: -1,
+            viewWindow: { min: 1 },
+            textStyle: { fontSize: 11 },
+            titleTextStyle: { fontSize: 14 }
+          },
+          hAxis: {
+            title: "날짜",
+            slantedText: true,
+            slantedTextAngle: 45,
+            textStyle: { fontSize: 11 },
+            titleTextStyle: { fontSize: 14 }
+          }
+        };
+
+        const chart = new google.visualization.LineChart(chartDiv);
+        chart.draw(chartData, options);
+      });
+    }
+
+    function drawMultiChartBrand(data) {
+      const container = document.getElementById("multi_chart_container");
+      container.innerHTML = ""; // 기존 차트 초기화
+
+      // 1. 플랫폼 + 카테고리(소) 기준으로 그룹화
+      const grouped = {};
+
+      data.forEach(row => {
+        const key = `${row.Channel} | ${row.Category_S}`;
+        if (!grouped[key]) grouped[key] = [];
+        grouped[key].push(row);
+      });
+
+      // 2. 그룹별로 차트 생성
+      Object.entries(grouped).forEach(([groupKey, groupData], index) => {
+        const chartDiv = document.createElement("div");
+        chartDiv.id = `chart_${index}`;
+        chartDiv.style.marginBottom = "50px";
+        chartDiv.style.height = "900px";
+        container.appendChild(chartDiv);
+
+        const chartData = new google.visualization.DataTable();
+        chartData.addColumn("string", "날짜");
+
+        const brands = [...new Set(groupData.map(d => d.Brand_Name))];
+        brands.forEach(p => chartData.addColumn("number", p));
+
+        // 날짜별로 순위 구성
+        const dateMap = {};
+        groupData.forEach(row => {
+          if (!dateMap[row.date]) dateMap[row.date] = {};
+          dateMap[row.date][row.Brand_Name] = row.Score;
+        });
+
+        const rows = Object.keys(dateMap).sort().map(date => {
+          const row = [date];
+          brands.forEach(p => {
+            row.push(dateMap[date][p] ?? null);
+          });
+          return row;
+        });
+        chartData.addRows(rows);
+
+        const options = {
+          title: groupKey,
+          curveType: "function",
+          legend: { position: "right", textStyle: { fontSize: 11 } },
+          height: 900,
+          chartArea: { left: 60, top: 60, width: "75%", height: "75%" },
+          vAxis: {
+            title: "순위",
+            viewWindow: { min: 1 },
+            textStyle: { fontSize: 11 },
+            titleTextStyle: { fontSize: 14 }
+          },
+          hAxis: {
+            title: "날짜",
+            slantedText: true,
+            slantedTextAngle: 45,
+            textStyle: { fontSize: 11 },
+            titleTextStyle: { fontSize: 14 }
+          }
+        };
+
+        const chart = new google.visualization.LineChart(chartDiv);
+        chart.draw(chartData, options);
+      });
+    }
+
+
+    async function loadProductsByBrand() {
+      const channel = getSelectValues("channelFilter").join(",");
+      const catB = getSelectValues("catBFilter").join(",");
+      const catM = getSelectValues("catMFilter").join(",");
+      const catS = getSelectValues("catSFilter").join(",");
+      const brand = getSelectValues("brandFilter").join(",");
+
+      if (!brand) return;
+
+      const url = `${DATA_API}?channel=${encodeURIComponent(channel)}&catB=${encodeURIComponent(catB)}&catM=${encodeURIComponent(catM)}&catS=${encodeURIComponent(catS)}&brand=${encodeURIComponent(brand)}`;
+
+      const response = await fetch(url);
+      const data = await response.json();
+
+      const productSet = new Set(data.map(row => row.Product_Name));
+      const select = document.getElementById("productFilter");
+      select.innerHTML = "";
+
+      Array.from(productSet).sort().forEach(name => {
+        const opt = document.createElement("option");
+        opt.value = name;
+        opt.textContent = name;
+        select.appendChild(opt);
+      });
+
+    }
+
+    async function loadProductOptions() {
+      showLoader();
+
+      const channel = getSelectValues("channelFilter").join(",");
+      const catB = getSelectValues("catBFilter").join(",");
+      const catM = getSelectValues("catMFilter").join(",");
+      const catS = getSelectValues("catSFilter").join(",");
+      const brand = getSelectValues("brandFilter");
+
+      if (brand.length === 0) {
+        alert("하나 이상의 브랜드를 선택하세요.");
+        hideLoader();
+        return;
+      }
+
+      try {
+        const brandStr = brand.join(",");
+        const url = `${DATA_API}?channel=${encodeURIComponent(channel)}&catB=${encodeURIComponent(catB)}&catM=${encodeURIComponent(catM)}&catS=${encodeURIComponent(catS)}&brand=${encodeURIComponent(brandStr)}&startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
+
+        console.log("요청 URL:", url);
+
+        const response = await fetch(url);
+        const data = await response.json();
+
+        const productSet = new Set(data.map(row => row.Product_Name));
+        const select = document.getElementById("productFilter");
+        select.innerHTML = "";
+
+        Array.from(productSet).sort().forEach(name => {
+          const opt = document.createElement("option");
+          opt.value = name;
+          opt.textContent = name;
+          select.appendChild(opt);
+        });
+      } catch (error) {
+        alert("제품 데이터를 불러오는 데 실패했습니다.");
+        console.error(error);
+      } finally {
+        hideLoader();
+      }
+    }
+
+    function showLoader() {
+      document.getElementById("fullscreen-loader").style.display = "flex";
+    }
+
+    function hideLoader() {
+      document.getElementById("fullscreen-loader").style.display = "none";
+    }
+
+    function getSelectedValues() {
+      return {
+        channel: getSelectValues("channelFilter"),
+        catB: getSelectValues("catBFilter"),
+        catM: getSelectValues("catMFilter"),
+        catS: getSelectValues("catSFilter"),
+        brand: getSelectValues("brandFilter")
+      };
+    }
+
+    let isUpdatingFilters = false;
+
+    function updateDependentFilters() {
+      if (isUpdatingFilters) return;
+      isUpdatingFilters = true;
+
+      const selected = getSelectedValues();
+
+      // 각 필터에 대해, 자기 자신을 제외한 필터 조건으로 필터링
+      const getFilteredOptions = (excludeKey) => {
+        return rawFilterData.filter(row => {
+          return (
+            (excludeKey === "channel" || !selected.channel.length || selected.channel.includes(row.Channel)) &&
+            (excludeKey === "catB" || !selected.catB.length || selected.catB.includes(row.Category_B)) &&
+            (excludeKey === "catM" || !selected.catM.length || selected.catM.includes(row.Category_M)) &&
+            (excludeKey === "catS" || !selected.catS.length || selected.catS.includes(row.Category_S)) &&
+            (excludeKey === "brand" || !selected.brand.length || selected.brand.includes(row.Brand_Name))
+          );
+        });
+      };
+
+      const getUniqueValues = (data, key) =>
+        [...new Set(data.map(row => row[key]).filter(Boolean))].sort();
+
+      // 각 필터별로 독립적으로 값 추출
+      const channelOptions = getUniqueValues(getFilteredOptions("channel"), "Channel");
+      const catBOptions = getUniqueValues(getFilteredOptions("catB"), "Category_B");
+      const catMOptions = getUniqueValues(getFilteredOptions("catM"), "Category_M");
+      const catSOptions = getUniqueValues(getFilteredOptions("catS"), "Category_S");
+      const brandOptions = getUniqueValues(getFilteredOptions("brand"), "Brand_Name");
+
+      // 선택된 값 유지하며 드롭다운 갱신
+      populateSelect("channelFilter", channelOptions, selected.channel);
+      populateSelect("catBFilter", catBOptions, selected.catB);
+      populateSelect("catMFilter", catMOptions, selected.catM);
+      populateSelect("catSFilter", catSOptions, selected.catS);
+      populateSelect("brandFilter", brandOptions, selected.brand);
+
+      isUpdatingFilters = false;
+    }
+
+
+    function attachFilterChangeEvents() {
+      ["channelFilter", "catBFilter", "catMFilter", "catSFilter", "brandFilter"].forEach(id => {
+        document.getElementById(id).addEventListener("change", updateDependentFilters);
+      });
+    }
+
+    google.charts.load("current", { packages: ["corechart"] });
+    google.charts.setOnLoadCallback(async () => {
+      showLoader();
+      await populateFilters();
+      attachFilterChangeEvents();
+      hideLoader();
+      //document.getElementById("brandFilter").addEventListener("change", loadProductsByBrand);
+    });
+  </script>
+</body>
+</html>
