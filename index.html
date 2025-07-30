@@ -276,8 +276,8 @@
       const brand = getSelectValues("brandFilter").join(",");
       //const products = getSelectValues("productFilter").join(",");
 
-      if (brand.length === 0) {
-        alert("하나 이상의 브랜드를 선택하세요.");
+      if (brand.length === 0 && catS.length === 0) {
+        alert("하나 이상의 브랜드 또는 카테고리(소)를 선택하세요.");
         hideLoader();
         return;
       }
@@ -562,8 +562,8 @@
       const catS = getSelectValues("catSFilter").join(",");
       const brand = getSelectValues("brandFilter");
 
-      if (brand.length === 0) {
-        alert("하나 이상의 브랜드를 선택하세요.");
+      if (brand.length === 0 && catS.length === 0) {
+        alert("하나 이상의 브랜드 또는 카테고리(소)를 선택하세요.");
         hideLoader();
         return;
       }
