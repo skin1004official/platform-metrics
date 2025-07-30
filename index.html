@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <title>제품 순위 트렌드 대시보드</title>
+
+
+
   <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
@@ -10,6 +13,12 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/litepicker/dist/css/litepicker.css" />
   <script src="https://cdn.jsdelivr.net/npm/litepicker/dist/bundle.js"></script>
   <style>
+    /* 로그인 전 화면 숨김 */
+    #dashboard-content { display: none; }
+    #login-screen { display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column; }
+    .login-btn { padding: 12px 24px; font-size: 16px; background-color: #3b82f6; color: white; border: none; border-radius: 8px; cursor: pointer; }
+    .logout-btn { position: absolute; top: 16px; right: 16px; padding: 8px 16px; background-color: #ef4444; color: white; border: none; border-radius: 6px; cursor: pointer; }
+
     body {
       font-family: 'Segoe UI', sans-serif;
       padding: 30px;
@@ -152,67 +161,125 @@
   </style>
 </head>
 <body>
-  <div id="fullscreen-loader">
-    <div class="spinner"></div>
-    <div class="loading-text">데이터를 불러오는 중입니다...</div>
+  <!-- ✅ 로그인 화면 -->
+  <div id="login-screen">
+    <h2>로그인이 필요합니다</h2>
+    <button class="login-btn" onclick="signInWithGoogle()">Google 계정으로 로그인</button>
   </div>
-  <h1>제품 순위 트렌드 대시보드</h1>
 
-  <div class="filters">
-    <!-- 첫 번째 줄: 필터 + 제품 불러오기 버튼 -->
-    <div style="grid-column: span 7; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, auto)); gap: 30px;">
-      <div>
-        <label for="dateRange">날짜 범위</label>
-        <input type="text" id="dateRange" placeholder="날짜 선택..."  class="styled-select" style="height: 20px;" />
-      </div>
-      <div>
-        <label for="channelFilter">플랫폼</label>
-        <select id="channelFilter" multiple class="styled-select"></select>
-      </div>
-      <div>
-        <label for="catBFilter">카테고리(대)</label>
-        <select id="catBFilter" multiple class="styled-select"></select>
-      </div>
-      <div>
-        <label for="catMFilter">카테고리(중)</label>
-        <select id="catMFilter" multiple class="styled-select"></select>
-      </div>
-      <div>
-        <label for="catSFilter">카테고리(소)</label>
-        <select id="catSFilter" multiple class="styled-select"></select>
-      </div>
-      <div>
-        <label for="brandFilter">브랜드</label>
-        <select id="brandFilter" multiple class="styled-select"></select>
-      </div>
-      <div>
-        <label>&nbsp;</label>
-        <button onclick="loadChartBrand()" class="custom-btn blue">차트 그리기(브랜드 점수)</button>
+  <!-- ✅ 실제 콘텐츠는 로그인 후 보여짐 -->
+  <div id="dashboard-content">
+    <div id="fullscreen-loader">
+      <div class="spinner"></div>
+      <div class="loading-text">데이터를 불러오는 중입니다...</div>
+    </div>
+    <button class="logout-btn" onclick="logout()">로그아웃</button>
+    <h1>제품 순위 트렌드 대시보드</h1>
 
+    <div class="filters">
+      <!-- 첫 번째 줄: 필터 + 제품 불러오기 버튼 -->
+      <div style="grid-column: span 7; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, auto)); gap: 30px;">
+        <div>
+          <label for="dateRange">날짜 범위</label>
+          <input type="text" id="dateRange" placeholder="날짜 선택..."  class="styled-select" style="height: 20px;" />
+        </div>
+        <div>
+          <label for="channelFilter">플랫폼</label>
+          <select id="channelFilter" multiple class="styled-select"></select>
+        </div>
+        <div>
+          <label for="catBFilter">카테고리(대)</label>
+          <select id="catBFilter" multiple class="styled-select"></select>
+        </div>
+        <div>
+          <label for="catMFilter">카테고리(중)</label>
+          <select id="catMFilter" multiple class="styled-select"></select>
+        </div>
+        <div>
+          <label for="catSFilter">카테고리(소)</label>
+          <select id="catSFilter" multiple class="styled-select"></select>
+        </div>
+        <div>
+          <label for="brandFilter">브랜드</label>
+          <select id="brandFilter" multiple class="styled-select"></select>
+        </div>
+        <div>
+          <label>&nbsp;</label>
+          <button onclick="loadChartBrand()" class="custom-btn blue">차트 그리기(브랜드 점수)</button>
+
+        </div>
+      </div>
+
+      <!-- 두 번째 줄: 제품 선택 + 차트 그리기 버튼 -->
+      <div style="grid-column: span 6; display: flex; gap: 20px; margin-top: 25px;">
+        <div style="flex: 1;">
+          <label for="productFilter">제품</label>
+          <select id="productFilter" multiple size="4"  class="styled-select" style="width: 100%;"></select>
+        </div>
+        <div style="display: flex; align-items: flex-end;">
+          <button onclick="loadProductOptions()" class="custom-btn olivedrab">제품 불러오기</button>
+        </div>
+        <div style="display: flex; align-items: flex-end;">
+          <button onclick="loadChart()" class="custom-btn green">차트 그리기(제품 순위)</button>
+        </div>
       </div>
     </div>
 
-    <!-- 두 번째 줄: 제품 선택 + 차트 그리기 버튼 -->
-    <div style="grid-column: span 6; display: flex; gap: 20px; margin-top: 25px;">
-      <div style="flex: 1;">
-        <label for="productFilter">제품</label>
-        <select id="productFilter" multiple size="4"  class="styled-select" style="width: 100%;"></select>
-      </div>
-      <div style="display: flex; align-items: flex-end;">
-        <button onclick="loadProductOptions()" class="custom-btn olivedrab">제품 불러오기</button>
-      </div>
-      <div style="display: flex; align-items: flex-end;">
-        <button onclick="loadChart()" class="custom-btn green">차트 그리기(제품 순위)</button>
-      </div>
-    </div>
+
+    <div id="brandHighlightButtons" class="brand-filter-container" style="padding-top: 30px"></div>
+
+
+    <!-- <div id="chart_div">차트를 불러오는 중...</div> -->
+    <div id="multi_chart_container" style="padding-top: 30px">차트 영역</div>
   </div>
 
+  <!-- ✅ Firebase SDK 추가 -->
+  <script src="https://www.gstatic.com/firebasejs/12.0.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/12.0.0/firebase-auth-compat.js"></script>
 
-  <div id="brandHighlightButtons" class="brand-filter-container" style="padding-top: 30px"></div>
+  <script>
+    window.onload = () => {
+      const firebaseConfig = {
+        apiKey: "AIzaSyBrKxLpD99V6Nq8W3UtQAiS3uPCnDmNfls",
+        authDomain: "platform-metrics-131f0.firebaseapp.com",
+        projectId: "platform-metrics-131f0"
+      };
+      firebase.initializeApp(firebaseConfig);
 
+      const auth = firebase.auth();
+      const ALLOWED_DOMAINS = ["skin1004korea.com", "cravercorp.com"];
 
-  <!-- <div id="chart_div">차트를 불러오는 중...</div> -->
-  <div id="multi_chart_container" style="padding-top: 30px">차트 영역</div>
+      auth.onAuthStateChanged(user => {
+        if (user) {
+          const email = user.email || "";
+          const domain = email.split("@")[1];
+          if (ALLOWED_DOMAINS.includes(domain)) {
+            document.getElementById("login-screen").style.display = "none";
+            document.getElementById("dashboard-content").style.display = "block";
+          } else {
+            alert("허용되지 않은 도메인입니다: " + domain);
+            auth.signOut();
+          }
+        } else {
+          document.getElementById("login-screen").style.display = "flex";
+          document.getElementById("dashboard-content").style.display = "none";
+        }
+      });
+
+      window.signInWithGoogle = () => {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        auth.signInWithPopup(provider).catch(error => {
+          alert("로그인 실패: " + error.message);
+        });
+      };
+
+      window.logout = () => {
+        auth.signOut().then(() => {
+          location.reload();
+        });
+      };
+    };
+  </script>
 
   <script>
     let startDate = "";
