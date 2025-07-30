@@ -132,6 +132,23 @@
       outline: none;
       box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
     }
+
+    .brand-filter-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 20px 0;
+      align-items: center;
+    }
+
+    .brand-filter-container button {
+      padding: 6px 12px;
+      font-size: 12px;
+      border-radius: 6px;
+      line-height: 1.4;
+      white-space: nowrap;
+    }
+
   </style>
 </head>
 <body>
@@ -189,6 +206,10 @@
       </div>
     </div>
   </div>
+
+
+  <div id="brandHighlightButtons" class="brand-filter-container" style="padding-top: 30px"></div>
+
 
   <!-- <div id="chart_div">차트를 불러오는 중...</div> -->
   <div id="multi_chart_container" style="padding-top: 30px">차트 영역</div>
@@ -386,13 +407,24 @@
       chart.draw(chartData, options);
     }
 
-    function drawMultiChart(data) {
+    function drawMultiChart(data, highlightBrand = null) {
       const container = document.getElementById("multi_chart_container");
       container.innerHTML = ""; // 기존 차트 초기화
 
+      // 제품 → 브랜드 매핑
+      const productToBrand = {};
+      data.forEach(row => {
+        productToBrand[row.Product_Name] = row.Brand_Name;
+      });
+
+      // 제품 → Link 매핑
+      const productToLink = {};
+      data.forEach(row => {
+        productToLink[row.Product_Name] = row.Link;
+      });
+
       // 1. 플랫폼 + 카테고리(소) 기준으로 그룹화
       const grouped = {};
-
       data.forEach(row => {
         const key = `${row.Channel} | ${row.Category_S}`;
         if (!grouped[key]) grouped[key] = [];
@@ -429,9 +461,21 @@
         });
         chartData.addRows(rows);
 
+        // 시리즈별 강조 설정
+        const series = {};
+        products.forEach((productName, idx) => {
+          const brand = productToBrand[productName];
+          if (highlightBrand && brand !== highlightBrand) {
+            series[idx] = { color: '#ccc', lineWidth: 1 };
+          } else {
+            series[idx] = { lineWidth: 3 };
+          }
+        });
+
         const options = {
           title: groupKey,
           curveType: "function",
+          series: series,
           legend: { position: "right", textStyle: { fontSize: 11 } },
           height: 900,
           chartArea: { left: 60, top: 60, width: "75%", height: "75%" },
@@ -453,8 +497,32 @@
 
         const chart = new google.visualization.LineChart(chartDiv);
         chart.draw(chartData, options);
+
+        // 브랜드 버튼은 첫 차트 렌더 시에만 추가
+        if (index === 0) {
+          const allBrands = [...new Set(data.map(row => row.Brand_Name))].sort();
+          renderBrandHighlightButtons(allBrands, data);
+        }
+
+        google.visualization.events.addListener(chart, 'select', function () {
+          const selection = chart.getSelection();
+          if (selection.length > 0) {
+            const column = selection[0].column;
+            if (column !== null) {
+              const productIndex = column - 1;
+              const productName = products[productIndex];
+              const link = productToLink[productName];
+              if (link) {
+                window.open(link, "_blank");
+              }
+            }
+          }
+        });
+
+
       });
     }
+
 
     function drawMultiChartBrand(data) {
       const container = document.getElementById("multi_chart_container");
@@ -660,6 +728,33 @@
         document.getElementById(id).addEventListener("change", updateDependentFilters);
       });
     }
+
+    function renderBrandHighlightButtons(brands, data) {
+      const container = document.getElementById("brandHighlightButtons");
+      container.innerHTML = "";
+
+      const label = document.createElement("span");
+      label.textContent = "브랜드 하이라이트:";
+      label.style.marginRight = "10px";
+      label.style.fontWeight = "500";
+      container.appendChild(label);
+
+      brands.forEach(brand => {
+        const btn = document.createElement("button");
+        btn.textContent = brand;
+        btn.className = "custom-btn green";
+        btn.onclick = () => drawMultiChart(data, brand);
+        container.appendChild(btn);
+      });
+
+      const resetBtn = document.createElement("button");
+      resetBtn.textContent = "모두 보기";
+      resetBtn.className = "custom-btn blue";
+      container.appendChild(resetBtn);
+      resetBtn.onclick = () => drawMultiChart(data, null);
+    }
+
+
 
     google.charts.load("current", { packages: ["corechart"] });
     google.charts.setOnLoadCallback(async () => {
