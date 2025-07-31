@@ -4,8 +4,6 @@
   <meta charset="UTF-8" />
   <title>제품 순위 트렌드 대시보드</title>
 
-
-
   <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
@@ -89,6 +87,10 @@
       color: white;
     }
 
+    .custom-btn.black {
+      background-color: #000000;
+    }
+
     .custom-btn.blue {
       background-color: #3b82f6;
     }
@@ -167,6 +169,71 @@
     <button class="login-btn" onclick="signInWithGoogle()">Google 계정으로 로그인</button>
   </div>
 
+  <!-- 도움말 콘텐츠 -->
+  <div id="manual-box" style="display: none; position: fixed; top: 70px; left: 16px; width: 600px; max-height: 80vh; overflow-y: auto; background: white; border: 1px solid #ccc; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); z-index: 9999;">
+    <h3 style="margin-top: 0;">📘 사용법 안내</h3>
+
+    <div style="font-size: 14px; line-height: 1.6;">
+      <h4>1. 필터 구성 및 활용법</h4>
+      <p>⏱️ <b>날짜 범위</b><br>날짜 범위 입력란 클릭 후 시작일과 종료일을 선택합니다.</p>
+      <p>📱 <b>플랫폼</b><br>판매 플랫폼(예: 아마존, 예스스타일 등)을 다중 선택합니다.</p>
+      <p>📂 <b>카테고리 (대 → 중 → 소)</b><br>대, 중, 소 카테고리를 조합해 원하는 제품군을 좁혀나갈 수 있습니다.</p>
+      <p>🏷️ <b>브랜드</b><br>하나 이상의 브랜드를 선택할 수 있습니다. 선택 시 해당 브랜드의 제품만 필터링됩니다.</p>
+      <p style="margin-top: 8px;">💡 <b>Tip:</b> 필터는 서로 의존성이 있어, 하나를 바꾸면 다른 필터 옵션도 동적으로 갱신됩니다.</p>
+
+      <h4 style="margin-top: 16px;">2. 제품 불러오기</h4>
+      <p>브랜드나 카테고리(소) 중 하나 이상을 선택한 후<br>
+      ➜ <b>[제품 불러오기]</b> 버튼 클릭<br>
+      ➜ 하단 제품 필드에 선택 조건에 맞는 제품들이 나타납니다.<br>
+      ➜ 이 중 <b>원하는 제품을 다중 선택</b>하면, <b>선택한 제품만 차트에 그려집니다.</b></p>
+
+      <h4 style="margin-top: 16px;">3. 차트 그리기</h4>
+      <p>🔵 <b>브랜드 점수 차트 (브랜드 전체 성과 비교)</b><br>
+      브랜드를 선택하지 않아도 <b>카테고리(소)</b>만 선택하면 사용 가능.<br>
+      ➜ <b>[차트 그리기(브랜드 점수)]</b> 클릭<br>
+      플랫폼 & 소카테고리 기준으로 브랜드별 점수 집계 추이 차트가 나타납니다.</p>
+
+      <p style="margin-left: 12px; margin-top: 6px;"><b>📊 브랜드 점수 계산 방식:</b></p>
+      <ul style="margin-left: 24px; font-size: 13px;">
+        <li>10점: 노출 순위 1위</li>
+        <li>8점: 첫 페이지 첫 줄에 상품 노출</li>
+        <li>6점: 첫 페이지 내에 상품 노출</li>
+        <li>4점: TOP 50 내 상품 노출</li>
+        <li>2점: TOP 100 내 상품 노출</li>
+        <li>1점: 100위 초과</li>
+      </ul>
+
+      <p>🟢 <b>제품 순위 차트 (개별 제품 성과 비교)</b><br>
+      필터 설정 후,<br>
+      ➜ <b>[차트 그리기(제품 순위)]</b> 클릭<br>
+      제품의 일별 순위 추이 차트가 나타납니다.</p>
+
+      <h4 style="margin-top: 16px;">4. 브랜드 강조 기능</h4>
+      <p>차트 하단의 <b>"브랜드 하이라이트"</b> 버튼 클릭 시<br>
+      ➜ 해당 브랜드 제품만 강조되고, 나머지 라인은 회색으로 표시됩니다.<br>
+      <b>[모두 보기]</b> 버튼을 누르면 강조 해제됩니다.</p>
+
+      <h4 style="margin-top: 16px;">5. 차트 상호작용</h4>
+      <p>차트 내 라인 클릭 → 제품의 외부 링크로 새 창 열림</p>
+
+      <h4 style="margin-top: 16px;">6. 기타</h4>
+      <ul style="padding-left: 18px; margin: 0;">
+        <li>🔄 <b>로그아웃</b> 버튼은 우측 상단에 위치</li>
+        <li>🔁 필터나 날짜 변경 시 <b>다시 제품 불러오기</b>를 눌러야 최신 제품 목록 반영</li>
+        <li>📈 차트가 없거나 조건이 부족하면 <b>알림 메시지</b>가 표시됩니다</li>
+      </ul>
+    </div>
+
+    <button class="custom-btn green" onclick="toggleManual()" style="margin-top: 16px;">닫기</button>
+  </div>
+
+  <script>
+    function toggleManual() {
+      const manual = document.getElementById("manual-box");
+      manual.style.display = manual.style.display === "none" ? "block" : "none";
+    }
+  </script>
+
   <!-- ✅ 실제 콘텐츠는 로그인 후 보여짐 -->
   <div id="dashboard-content">
     <div id="fullscreen-loader">
@@ -174,7 +241,11 @@
       <div class="loading-text">데이터를 불러오는 중입니다...</div>
     </div>
     <button class="logout-btn" onclick="logout()">로그아웃</button>
-    <h1>제품 순위 트렌드 대시보드</h1>
+    <!-- 도움말 토글 버튼 -->
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+      <h1 style="margin: 0;">제품 순위 트렌드 대시보드</h1>
+      <button onclick="toggleManual()" class="custom-btn black" style="color:#FFFFFF; font-size: 14px; padding: 6px 12px;">📘 사용법 안내</button>
+    </div>
 
     <div class="filters">
       <!-- 첫 번째 줄: 필터 + 제품 불러오기 버튼 -->
