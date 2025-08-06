@@ -115,6 +115,34 @@
       background-color: #4c6619;
     }
 
+    .page-btn {
+      width: 80px; /* 원하는 고정 너비 */
+    }
+
+    .small-btn {
+      font-size: 11px !important;
+      padding: 2px 5px !important;
+      border-radius: 3px;
+      line-height: 1.2;
+
+      text-align: left;
+      padding-left: 10px;
+      box-sizing: border-box;
+    }
+
+    #productHighlightWrapper {
+      width: 800px;          /* 원하는 고정 가로 크기 */
+      max-width: 800px;      /* 최대 너비도 동일하게 제한 */
+    }
+
+    /* 🔧 버튼이 활성화되었을 때 시각적으로 구분 */
+    .custom-btn.active {
+      border: 2px solid #000;
+      background-color: #1e40af !important;
+      color: white !important;
+    }
+
+
     label {
       font-weight: 500;
       margin-bottom: 4px;
@@ -208,9 +236,9 @@
       ➜ <b>[차트 그리기(제품 순위)]</b> 클릭<br>
       제품의 일별 순위 추이 차트가 나타납니다.</p>
 
-      <h4 style="margin-top: 16px;">4. 브랜드 강조 기능</h4>
-      <p>차트 하단의 <b>"브랜드 하이라이트"</b> 버튼 클릭 시<br>
-      ➜ 해당 브랜드 제품만 강조되고, 나머지 라인은 회색으로 표시됩니다.<br>
+      <h4 style="margin-top: 16px;">4. 브랜드/제품 강조 기능</h4>
+      <p>차트 하단의 <b>"브랜드 하이라이트" 또는 "제품 하이라이트"</b> 버튼 클릭 시<br>
+      ➜ 해당 브랜드 또는 제품이 강조되고, 나머지 라인은 회색으로 표시됩니다.<br>
       <b>[모두 보기]</b> 버튼을 누르면 강조 해제됩니다.</p>
 
       <h4 style="margin-top: 16px;">5. 차트 상호작용</h4>
@@ -298,6 +326,7 @@
 
 
     <div id="brandHighlightButtons" class="brand-filter-container" style="padding-top: 30px"></div>
+    <div id="productHighlightButtons" style="padding-top: 30px"></div>
 
 
     <!-- <div id="chart_div">차트를 불러오는 중...</div> -->
@@ -545,19 +574,16 @@
       chart.draw(chartData, options);
     }
 
-    function drawMultiChart(data, highlightBrand = null) {
+    function drawMultiChart(data, highlightBrands = null, highlightProducts = null) {
       const container = document.getElementById("multi_chart_container");
-      container.innerHTML = ""; // 기존 차트 초기화
+      container.innerHTML = "";
 
       // 제품 → 브랜드 매핑
-      const productToBrand = {};
-      data.forEach(row => {
-        productToBrand[row.Product_Name] = row.Brand_Name;
-      });
-
       // 제품 → Link 매핑
+      const productToBrand = {};
       const productToLink = {};
       data.forEach(row => {
+        productToBrand[row.Product_Name] = row.Brand_Name;
         productToLink[row.Product_Name] = row.Link;
       });
 
@@ -583,7 +609,7 @@
         const products = [...new Set(groupData.map(d => d.Product_Name))];
         products.forEach(p => chartData.addColumn("number", p));
 
-        // 날짜별로 순위 구성
+        // 날짜 별로 순위 구성
         const dateMap = {};
         groupData.forEach(row => {
           if (!dateMap[row.date]) dateMap[row.date] = {};
@@ -603,7 +629,11 @@
         const series = {};
         products.forEach((productName, idx) => {
           const brand = productToBrand[productName];
-          if (highlightBrand && brand !== highlightBrand) {
+          const shouldGray =
+            (highlightBrands && !highlightBrands.includes(brand)) ||
+            (highlightProducts && !highlightProducts.includes(productName));
+
+          if (shouldGray) {
             series[idx] = { color: '#ccc', lineWidth: 1 };
           } else {
             series[idx] = { lineWidth: 3 };
@@ -636,10 +666,12 @@
         const chart = new google.visualization.LineChart(chartDiv);
         chart.draw(chartData, options);
 
-        // 브랜드 버튼은 첫 차트 렌더 시에만 추가
+        // 브랜드, 제품 버튼은 첫 차트 렌더 시에만 추가
         if (index === 0) {
           const allBrands = [...new Set(data.map(row => row.Brand_Name))].sort();
+          const allProducts = [...new Set(data.map(row => row.Product_Name))].sort();
           renderBrandHighlightButtons(allBrands, data);
+          renderProductHighlightButtons(allProducts, data);
         }
 
         google.visualization.events.addListener(chart, 'select', function () {
@@ -656,10 +688,9 @@
             }
           }
         });
-
-
       });
     }
+
 
 
     function drawMultiChartBrand(data) {
@@ -867,6 +898,10 @@
       });
     }
 
+    // 🔧 최상단에 추가 (전역)
+    let activeBrandSet = new Set();
+    let activeProductSet = new Set();
+
     function renderBrandHighlightButtons(brands, data) {
       const container = document.getElementById("brandHighlightButtons");
       container.innerHTML = "";
@@ -881,16 +916,143 @@
         const btn = document.createElement("button");
         btn.textContent = brand;
         btn.className = "custom-btn green";
-        btn.onclick = () => drawMultiChart(data, brand);
+        btn.dataset.brand = brand;
+
+        // 초기 active 상태 적용
+        if (activeBrandSet.has(brand)) {
+          btn.classList.add("active");
+        }
+
+        btn.onclick = () => {
+          if (activeBrandSet.has(brand)) {
+            activeBrandSet.delete(brand);
+            btn.classList.remove("active");
+          } else {
+            activeBrandSet.add(brand);
+            btn.classList.add("active");
+          }
+
+          const highlightBrands = Array.from(activeBrandSet);
+          drawMultiChart(data, highlightBrands.length > 0 ? highlightBrands : null);
+        };
+
         container.appendChild(btn);
       });
 
       const resetBtn = document.createElement("button");
       resetBtn.textContent = "모두 보기";
       resetBtn.className = "custom-btn blue";
+      resetBtn.onclick = () => {
+        activeBrandSet.clear();
+        drawMultiChart(data, null);
+      };
+
       container.appendChild(resetBtn);
-      resetBtn.onclick = () => drawMultiChart(data, null);
     }
+
+    let productHighlightPage = 0;
+    const PRODUCTS_PER_PAGE = 15;  // 한 페이지에 몇 개 보여줄지 설정
+
+
+    function renderProductHighlightButtons(products, data) {
+      const container = document.getElementById("productHighlightButtons");
+
+      // 기존 wrapper 있으면 제거 (중복 방지)
+      const oldWrapper = document.getElementById("productHighlightWrapper");
+      if (oldWrapper) oldWrapper.remove();
+
+      const wrapper = document.createElement("div");
+      wrapper.id = "productHighlightWrapper";
+      wrapper.style.marginTop = "10px";
+
+      const label = document.createElement("div");
+      label.textContent = "제품 하이라이트:";
+      label.style.fontWeight = "500";
+      label.style.marginBottom = "6px";
+      wrapper.appendChild(label);
+
+      // 현재 페이지 기준으로 제품 추출
+      const startIndex = productHighlightPage * PRODUCTS_PER_PAGE;
+      const endIndex = startIndex + PRODUCTS_PER_PAGE;
+      const pageProducts = products.slice(startIndex, endIndex);
+
+      // 버튼 묶을 div
+      const buttonList = document.createElement("div");
+      buttonList.style.display = "flex";
+      buttonList.style.flexDirection = "column";  // 세로 정렬
+      buttonList.style.gap = "4px";
+
+      pageProducts.forEach(product => {
+        const btn = document.createElement("button");
+        btn.textContent = product;
+        btn.className = "custom-btn olivedrab small-btn";
+        btn.dataset.product = product;
+
+        if (activeProductSet.has(product)) {
+          btn.classList.add("active");
+        }
+
+        btn.onclick = () => {
+          if (activeProductSet.has(product)) {
+            activeProductSet.delete(product);
+            btn.classList.remove("active");
+          } else {
+            activeProductSet.add(product);
+            btn.classList.add("active");
+          }
+
+          const highlightProducts = Array.from(activeProductSet);
+          drawMultiChart(data, null, highlightProducts.length > 0 ? highlightProducts : null);
+        };
+
+        buttonList.appendChild(btn);
+      });
+
+      wrapper.appendChild(buttonList);
+
+      // 페이지네이션 버튼
+      const navWrapper = document.createElement("div");
+      navWrapper.style.marginTop = "8px";
+      navWrapper.style.display = "flex";
+      navWrapper.style.justifyContent = "space-between";
+
+      const prevBtn = document.createElement("button");
+      prevBtn.textContent = "이전";
+      prevBtn.className = "custom-btn black small-btn page-btn";
+      prevBtn.disabled = productHighlightPage === 0;
+      prevBtn.onclick = () => {
+        productHighlightPage--;
+        renderProductHighlightButtons(products, data);
+      };
+
+      const nextBtn = document.createElement("button");
+      nextBtn.textContent = "다음";
+      nextBtn.className = "custom-btn black small-btn page-btn";
+      nextBtn.disabled = endIndex >= products.length;
+      nextBtn.onclick = () => {
+        productHighlightPage++;
+        renderProductHighlightButtons(products, data);
+      };
+
+      navWrapper.appendChild(prevBtn);
+      navWrapper.appendChild(nextBtn);
+      wrapper.appendChild(navWrapper);
+
+      // 모두 보기 버튼
+      const resetBtn = document.createElement("button");
+      resetBtn.textContent = "모두 보기";
+      resetBtn.className = "custom-btn blue";
+      resetBtn.style.marginTop = "8px";
+      resetBtn.onclick = () => {
+        activeProductSet.clear();
+        drawMultiChart(data, null, null);
+      };
+      wrapper.appendChild(resetBtn);
+
+      container.appendChild(wrapper);
+    }
+
+
 
 
 
