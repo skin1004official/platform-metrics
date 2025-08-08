@@ -131,8 +131,8 @@
     }
 
     #productHighlightWrapper {
-      width: 800px;          /* 원하는 고정 가로 크기 */
-      max-width: 800px;      /* 최대 너비도 동일하게 제한 */
+      width: 1200px;          /* 원하는 고정 가로 크기 */
+      max-width: 1200px;      /* 최대 너비도 동일하게 제한 */
     }
 
     /* 🔧 버튼이 활성화되었을 때 시각적으로 구분 */
@@ -955,6 +955,8 @@
 
 
     function renderProductHighlightButtons(products, data) {
+      const totalProductPages = Math.ceil(products.length / PRODUCTS_PER_PAGE)
+
       const container = document.getElementById("productHighlightButtons");
 
       // 기존 wrapper 있으면 제거 (중복 방지)
@@ -1022,8 +1024,17 @@
       prevBtn.disabled = productHighlightPage === 0;
       prevBtn.onclick = () => {
         productHighlightPage--;
+        updatePageIndicator();
         renderProductHighlightButtons(products, data);
       };
+
+      // 페이지 표시기
+      const pageIndicator = document.createElement("span");
+      pageIndicator.style.margin = "0 8px";
+      pageIndicator.style.fontWeight = "bold";
+      function updatePageIndicator() {
+        pageIndicator.textContent = `${productHighlightPage + 1} / ${totalProductPages}`;
+      }
 
       const nextBtn = document.createElement("button");
       nextBtn.textContent = "다음";
@@ -1031,10 +1042,15 @@
       nextBtn.disabled = endIndex >= products.length;
       nextBtn.onclick = () => {
         productHighlightPage++;
+        updatePageIndicator();
         renderProductHighlightButtons(products, data);
       };
 
+      // 초기 페이지 표시
+      updatePageIndicator();
+
       navWrapper.appendChild(prevBtn);
+      navWrapper.appendChild(pageIndicator);
       navWrapper.appendChild(nextBtn);
       wrapper.appendChild(navWrapper);
 
@@ -1043,6 +1059,8 @@
       resetBtn.textContent = "모두 보기";
       resetBtn.className = "custom-btn blue";
       resetBtn.style.marginTop = "8px";
+      resetBtn.style.fontSize = "12px";
+      resetBtn.style.padding = "6px 12px";
       resetBtn.onclick = () => {
         activeProductSet.clear();
         drawMultiChart(data, null, null);
